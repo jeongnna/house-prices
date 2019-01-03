@@ -1,18 +1,9 @@
 library(tidyverse)
-library(data.table)
-
-
 
 
 train <- read_csv("../data/train.csv")
-train <- 
-  train %>% 
-  select(-Id, -Street) %>% 
-  mutate(MSSubClass = as.character(MSSubClass))
 
-
-# 제외할 변수
-exclude_ <- 
+excluded <- 
   c(
     "Id", 
     "Street",  # Extremely imbalanced
@@ -21,4 +12,22 @@ exclude_ <-
     "Condition2",  # Seemingly meaningless
     "LotConfig",  # Imbalanced and meaningless
     "LandSlope",  # Imbalanced and meaningless
+    "RoofMatl",  # Extremely imbalanced
+    "ExterCond",  # Extremely imbalanced
+    "Heating",  # Extremely imbalanced
+    "Functional",  # Imbalanced and meaningless
+    "GarageQual",  # Imbalanced and meaningless
+    "GarageCond",  # Imbalanced and meaningless
+    "BsmtHalfBath",  # Meaningless
+    "PoolArea",  # Meaningless
+    "MiscFeature",  # Extremely imbalanced,
+    "MiscVal",  # Imbalanced and meaningless
+    "MoSold",  # Meaningless
+    "YrSole",  # Meaningless
   )
+
+train$MSSubClass <- as.character(train$MSSubClass)
+train$Alley[is.na(train$Alley)] <- "NA"
+train$BsmtFullBath[train$BsmtFullBath > 1] <- 1
+train$PoolQC <- ifelse(is.na(train$PoolQC), 1, 0)
+train$Fence[is.na(train$Fence)] <- "NA"

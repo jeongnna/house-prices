@@ -38,7 +38,6 @@ train %>%
   geom_boxplot()
 ```
 
-
 ```{r}
 table(train$LandContour)
 
@@ -46,7 +45,6 @@ train %>%
   ggplot(aes(x = LandContour, y = SalePrice)) +
   geom_boxplot()
 ```
-
 
 ```{r}
 table(train$Utilities)
@@ -56,7 +54,6 @@ train %>%
   geom_boxplot()
 ```
 
-
 ```{r}
 table(train$LotConfig)
 
@@ -64,7 +61,6 @@ train %>%
   ggplot(aes(x = LotConfig, y = SalePrice)) +
   geom_boxplot()
 ```
-
 
 ```{r}
 table(train$LandSlope)
@@ -74,7 +70,6 @@ train %>%
   geom_boxplot()
 ```
 
-
 ```{r}
 table(train$Neighborhood)
 
@@ -82,7 +77,6 @@ train %>%
   ggplot(aes(x = Neighborhood, y = SalePrice)) +
   geom_boxplot()
 ```
-
 
 ```{r}
 table(train$Condition1)
@@ -92,7 +86,6 @@ train %>%
   geom_boxplot()
 ```
 
-
 ```{r}
 table(train$Condition2)
 
@@ -100,7 +93,6 @@ train %>%
   ggplot(aes(x = Condition2, y = SalePrice)) +
   geom_boxplot()
 ```
-
 
 ```{r}
 table(train$BldgType)
@@ -118,3 +110,107 @@ train %>%
   geom_boxplot()
 ```
 
+```{r}
+table(train$ExterCond)
+
+train %>% 
+  ggplot(aes(x = ExterCond, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$Functional)
+
+train %>% 
+  ggplot(aes(x = Functional, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$GarageQual)
+
+train %>% 
+  ggplot(aes(x = GarageQual, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$GarageCond)
+
+train %>% 
+  ggplot(aes(x = GarageCond, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$BsmtFullBath)
+
+train %>% 
+  ggplot(aes(x = factor(BsmtFullBath), y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$BsmtHalfBath)
+
+train %>% 
+  ggplot(aes(x = factor(BsmtHalfBath), y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$PoolQC)
+
+train %>% 
+  mutate(PoolQC = ifelse(is.na(PoolQC), "missing", "not-missing")) %>% 
+  ggplot(aes(x = PoolQC, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$Fence)
+
+train %>% 
+  group_by(Fence) %>% 
+  summarize(AvgPrice = mean(SalePrice, na.rm = TRUE))
+
+train %>% 
+  ggplot(aes(x = Fence, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$MiscFeature)
+
+train %>% 
+  group_by(MiscFeature) %>% 
+  summarize(AvgPrice = mean(SalePrice, na.rm = TRUE))
+
+train %>% 
+  ggplot(aes(x = MiscFeature, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$MiscVal)
+
+train %>% 
+  ggplot(aes(x = factor(MoSold), y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$MoSold)
+
+train %>% 
+  ggplot(aes(x = factor(MoSold), y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$YrSold)
+
+train %>% 
+  ggplot(aes(x = factor(YrSold), y = SalePrice)) +
+  geom_boxplot()
+```
