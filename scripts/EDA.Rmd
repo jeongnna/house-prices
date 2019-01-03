@@ -1,0 +1,120 @@
+---
+title: "Exploratory data analysis"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r}
+library(tidyverse)
+train <- read_csv("../data/train.csv")
+```
+
+```{r}
+train %>% 
+  ggplot(aes(x = factor(MSSubClass), y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$Street)
+
+train %>% 
+  ggplot(aes(x = Street, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$Alley)
+
+train %>% 
+  ggplot(aes(x = Alley, y = SalePrice)) +
+  geom_boxplot()
+```
+
+
+```{r}
+table(train$LandContour)
+
+train %>% 
+  ggplot(aes(x = LandContour, y = SalePrice)) +
+  geom_boxplot()
+```
+
+
+```{r}
+table(train$Utilities)
+
+train %>% 
+  ggplot(aes(x = Utilities, y = SalePrice)) +
+  geom_boxplot()
+```
+
+
+```{r}
+table(train$LotConfig)
+
+train %>% 
+  ggplot(aes(x = LotConfig, y = SalePrice)) +
+  geom_boxplot()
+```
+
+
+```{r}
+table(train$LandSlope)
+
+train %>% 
+  ggplot(aes(x = LandSlope, y = SalePrice)) +
+  geom_boxplot()
+```
+
+
+```{r}
+table(train$Neighborhood)
+
+train %>% 
+  ggplot(aes(x = Neighborhood, y = SalePrice)) +
+  geom_boxplot()
+```
+
+
+```{r}
+table(train$Condition1)
+
+train %>% 
+  ggplot(aes(x = Condition1, y = SalePrice)) +
+  geom_boxplot()
+```
+
+
+```{r}
+table(train$Condition2)
+
+train %>% 
+  ggplot(aes(x = Condition2, y = SalePrice)) +
+  geom_boxplot()
+```
+
+
+```{r}
+table(train$BldgType)
+
+train %>% 
+  ggplot(aes(x = BldgType, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$OverallCond)
+
+train %>% 
+  ggplot(aes(x = factor(OverallCond), y = SalePrice)) +
+  geom_boxplot()
+```
+

@@ -1,0 +1,55 @@
+---
+title: "Glimpse of data"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r}
+invisible(library(tidyverse))
+train <- read_csv("../data/train.csv")
+glimpse(train)
+```
+
+```{r}
+plot_Missing <- function(data, title = NULL){
+  temp_df <- as.data.frame(ifelse(is.na(data), 0, 1))
+  temp_df <- temp_df[, order(colSums(temp_df))]
+  data_temp <- expand.grid(list(x = 1:nrow(temp_df), y = colnames(temp_df)))
+  data_temp$m <- as.vector(as.matrix(temp_df))
+  
+  ggplot(data_temp) + 
+    geom_tile(aes(x = x, y = y, fill = factor(m))) + 
+    scale_fill_manual(values = c("white", "black"), name="Missing\n(0=Yes, 1=No)") + 
+    theme_light() + 
+    ylab("") + xlab("") + ggtitle(title)
+}
+
+plot_Missing(train[, colSums(is.na(train)) > 0])
+```
+
+```{r, fig.width = 11, fig.height = 5.5}
+invisible(library(tabplot))
+
+train$SalePrice <- log(train$SalePrice)
+for (i in 1:16) {
+  plot(tableplot(train, 
+                 select = c(((i - 1) * 5 + 1):(i * 5), 81), 
+                 sortCol = 6, 
+                 nBins = 73, 
+                 plot = FALSE), 
+       fontsize = 12, 
+       title = paste("log(SalePrice) vs ", 
+                     paste(colnames(train)[((i - 1) * 5 + 1):(i * 5)], 
+                           collapse = "+"), 
+                     sep = ""), 
+       showTitle = TRUE, 
+       fontsize.title = 12)
+}
+```
