@@ -13,13 +13,19 @@ knitr::opts_chunk$set(
 
 ```{r}
 library(tidyverse)
-train <- read_csv("../data/train.csv")
+train <- read_csv("../data/raw/train.csv")
 ```
 
 ```{r}
 train %>% 
   ggplot(aes(x = factor(MSSubClass), y = SalePrice)) +
   geom_boxplot()
+```
+
+```{r}
+train %>% 
+  ggplot(aes(x = LotFrontage, y = SalePrice)) +
+  geom_point()
 ```
 
 ```{r}
