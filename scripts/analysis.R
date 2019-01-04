@@ -59,6 +59,7 @@ train_x <- data_mat[-valid_ind, ]
 valid_y <- data$SalePrice[valid_ind]
 train_y <- data$SalePrice[-valid_ind]
 
+# Exclude empty cols
 excluded_cols <- which(apply(train_x, 2, n_distinct) == 1)
 train_x <- train_x[, -excluded_cols]
 valid_x <- valid_x[, -excluded_cols]
@@ -112,3 +113,45 @@ rf_rmse <- rmse(valid_y, rf_pred) %>% set_names("RF")
 rmse_list <- c(err_lasso, err_rf)
 signif(rmse_list, 3)
 rmse_list[which.min(rmse_list)]
+
+
+# Final prediction --------------------------------------------------------
+
+test <- read_csv("../data/processed/test.csv")
+
+# Remove incomplete cases
+cpt <- complete.cases(test)
+sum(cpt) / nrow(test)  # 0.979
+test <- test %>% na.omit()
+
+# One-hot encoding
+test_mat <- model.matrix(SalePrice ~ ., data = test)
+test_mat <- test_mat[, -1]  # Exclude intercept term
+colnames(test_mat) <- str_replace(colnames(test_mat), " ", "_")
+
+#
+merged_x <- data_mat[, -excluded_cols]
+test_x <- test_mat[, -excluded_cols]
+merged_y <- data$SalePrice
+
+# Scale features
+x_min <- apply(merged_x, 2, min)
+x_range <- apply(merged_x, 2, function(x) {max(x) - min(x)})
+merged_x <- scale(merged_x, center = x_min, scale = x_range)
+test_x <- scale(test_x, center = x_min, scale = x_range)
+
+y_min <- min(merged_y)
+y_range <- max(merged_y) - min(merged_y)
+merged_y <- scale(merged_y, center = y_min, scale = y_range)
+
+# Fit model
+final_fit <- randomForest(merged_x, merged_y)
+final_pred <- predict(final_fit, newdata = test_x)
+final_pred <- final_pred * y_range + y_min
+final_pred <- exp(final_pred)
+final_pred
+
+
+sale_price <- NULL
+sale_price[cpt] <- final_pred
+sale_price[-cpt] <- mean(data$SalePrice)
