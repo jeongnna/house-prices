@@ -46,23 +46,20 @@ preprocess <- function(data) {
       "YrSold"  # Meaningless
     )
   data <- data %>% select(-excluded)
+  
+  start_with_digit <- colnames(data) %>% str_detect("^[:digit:]")
+  colnames(data)[start_with_digit] <- 
+    str_c("X", colnames(data)[start_with_digit])
+  
+  data
 }
 
 
 in_path <- "../data/raw/"
 out_path <- "../data/processed/"
 
-# Training & Validation set
-data <- 
-  read_csv(file = str_c(in_path, "train.csv")) %>% 
-  preprocess()
-set.seed(123)  # random seed for sample_n()
-valid <- data %>% sample_n(size = 0.3 * nrow(data), replace = FALSE)
-train <- setdiff(data, valid)
-write.csv(train, file = str_c(out_path, "train.csv"), row.names = FALSE)
-write.csv(valid, file = str_c(out_path, "valid.csv"), row.names = FALSE)
-
-# Test set
-read_csv(file = str_c(in_path, "test.csv")) %>%
-  preprocess() %>%
-  write.csv(file = str_c(out_path, "test.csv"), row.names = FALSE)
+for (name in c("train.csv", "test.csv")) {
+  read_csv(file = str_c(in_path, name)) %>% 
+    preprocess() %>% 
+    write.csv(file = str_c(out_path, name), row.names = FALSE)
+}
