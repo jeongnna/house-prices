@@ -111,34 +111,26 @@ train %>%
 ```
 
 ```{r}
+train %>% 
+  ggplot(aes(x = YearBuilt, y = SalePrice)) +
+  geom_point() +
+  geom_smooth()
+```
+
+```{r}
+lm_fit <- lm(SalePrice ~ YearBuilt, data = train)
+rd <- residuals(lm_fit)
+tibble(rd = rd, remod = train$YearRemodAdd - train$YearBuilt) %>% 
+  ggplot(aes(x = remod, y = rd)) +
+  geom_point() +
+  geom_smooth()
+```
+
+```{r}
 table(train$ExterCond)
 
 train %>% 
   ggplot(aes(x = ExterCond, y = SalePrice)) +
-  geom_boxplot()
-```
-
-```{r}
-table(train$Functional)
-
-train %>% 
-  ggplot(aes(x = Functional, y = SalePrice)) +
-  geom_boxplot()
-```
-
-```{r}
-table(train$GarageQual)
-
-train %>% 
-  ggplot(aes(x = GarageQual, y = SalePrice)) +
-  geom_boxplot()
-```
-
-```{r}
-table(train$GarageCond)
-
-train %>% 
-  ggplot(aes(x = GarageCond, y = SalePrice)) +
   geom_boxplot()
 ```
 
@@ -155,6 +147,57 @@ table(train$BsmtHalfBath)
 
 train %>% 
   ggplot(aes(x = factor(BsmtHalfBath), y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$Functional)
+
+train %>% 
+  ggplot(aes(x = Functional, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$FireplaceQu)
+
+train %>% 
+  ggplot(aes(x = FireplaceQu, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+train %>% 
+  ggplot(aes(x = YearBuilt, y = GarageYrBlt)) +
+  geom_jitter()
+
+train %>% 
+  ggplot(aes(x = YearRemodAdd - YearBuilt, y = GarageYrBlt - YearBuilt)) +
+  geom_jitter()
+```
+
+```{r}
+lm_fit <- lm(SalePrice ~ YearBuilt, data = train)
+rd <- residuals(lm_fit)
+tibble(rd = rd, GarageRemod = train$GarageYrBlt - train$YearBuilt) %>% 
+  ggplot(aes(x = GarageRemod, y = rd)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+table(train$GarageQual)
+
+train %>% 
+  ggplot(aes(x = GarageQual, y = SalePrice)) +
+  geom_boxplot()
+```
+
+```{r}
+table(train$GarageCond)
+
+train %>% 
+  ggplot(aes(x = GarageCond, y = SalePrice)) +
   geom_boxplot()
 ```
 
