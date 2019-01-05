@@ -100,12 +100,15 @@ test <- test %>% preprocess()
 write.csv(test, file = str_c(out_path, "test.csv"), row.names = FALSE)
 
 # Create dummy variables for LASSO
+train_full_mat <- model.matrix(SalePrice ~ ., data = train_full)
+train_full_mat <- train_full_mat[, -1]  # Exclude intercept term
 train_mat <- model.matrix(SalePrice ~ ., data = train)
-train_mat <- train_mat[, -1]  # Exclude intercept term
+train_mat <- train_mat[, -1]
 valid_mat <- model.matrix(SalePrice ~ ., data = train)
 valid_mat <- valid_mat[, -1]
 test_mat <- model.matrix(SalePrice ~ ., data = train)
 test_mat <- test_mat[, -1]
+# colnames(train_full_mat) <- str_replace(colnames(train_full_mat), " ", "_")
 # colnames(train_mat) <- str_replace(colnames(train_mat), " ", "_")
 # colnames(valid_mat) <- str_replace(colnames(valid_mat), " ", "_")
 # colnames(test_mat) <- str_replace(colnames(test_mat), " ", "_")
