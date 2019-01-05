@@ -45,20 +45,6 @@ data <- read_csv("../data/processed/train.csv")
 sum(complete.cases(data)) / nrow(data)  # 0.992
 data <- data %>% na.omit()
 
-# One-hot encoding
-data_mat <- model.matrix(SalePrice ~ ., data = data)
-data_mat <- data_mat[, -1]  # Exclude intercept term
-colnames(data_mat) <- str_replace(colnames(data_mat), " ", "_")
-
-# Partition data into training & validation set
-set.seed(123)
-n <- nrow(data_mat)
-valid_ind <- sample(1:n, 0.3 * n, replace = FALSE)
-valid_x <- data_mat[valid_ind, ]
-train_x <- data_mat[-valid_ind, ]
-valid_y <- data$SalePrice[valid_ind]
-train_y <- data$SalePrice[-valid_ind]
-
 # Exclude empty cols
 excluded_cols <- which(apply(train_x, 2, n_distinct) == 1)
 train_x <- train_x[, -excluded_cols]
