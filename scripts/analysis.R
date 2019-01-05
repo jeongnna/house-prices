@@ -39,16 +39,19 @@ pred_plot <- function(y, yhat, window = NULL) {
 # Preparation -------------------------------------------------------------
 
 # Load data
-data <- read_csv("../data/processed/train.csv")
+train <- read_csv("../data/processed/train.csv")
+valid <- read_csv("../data/processed/valid.csv")
+train_mat <- read_csv("../data/processed/train_mat.csv")
+valid_mat <- read_csv("../data/processed/valid_mat.csv")
 
 # Remove incomplete cases
 sum(complete.cases(data)) / nrow(data)  # 0.992
 data <- data %>% na.omit()
 
 # Exclude empty cols
-excluded_cols <- which(apply(train_x, 2, n_distinct) == 1)
-train_x <- train_x[, -excluded_cols]
-valid_x <- valid_x[, -excluded_cols]
+# excluded_cols <- which(apply(train_x, 2, n_distinct) == 1)
+# train_x <- train_x[, -excluded_cols]
+# valid_x <- valid_x[, -excluded_cols]
 
 # Scale features
 # num_cols <- sapply(data, typeof) != "character"
