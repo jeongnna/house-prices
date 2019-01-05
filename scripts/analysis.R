@@ -45,8 +45,8 @@ train_mat <- read_csv("../data/processed/train_mat.csv")
 valid_mat <- read_csv("../data/processed/valid_mat.csv")
 
 # Remove incomplete cases
-sum(complete.cases(data)) / nrow(data)  # 0.992
-data <- data %>% na.omit()
+sum(complete.cases(train)) / nrow(train)
+train <- train %>% na.omit()
 
 # Exclude empty cols
 # excluded_cols <- which(apply(train_x, 2, n_distinct) == 1)
@@ -56,13 +56,21 @@ data <- data %>% na.omit()
 # Scale features
 # num_cols <- sapply(data, typeof) != "character"
 # num_cols <- names(num_cols)[num_cols] %>% setdiff("SalePrice")
-x_min <- apply(train_x, 2, min)
-x_range <- apply(train_x, 2, function(x) {max(x) - min(x)})
-train_x <- scale(train_x, center = x_min, scale = x_range)
-valid_x <- scale(valid_x, center = x_min, scale = x_range)
-y_min <- min(train_y)
-y_range <- max(train_y) - min(train_y)
-train_y <- scale(train_y, center = y_min, scale = y_range)
+# x_min <- apply(train_x, 2, min)
+# x_range <- apply(train_x, 2, function(x) {max(x) - min(x)})
+x_min <- sapply(train, min)
+x_range <- sapply(train, sd)
+# train_x <- scale(train_x, center = x_min, scale = x_range)
+# valid_x <- scale(valid_x, center = x_min, scale = x_range)
+train[-"SalePrice"] <- scale(train[-"SalePrice"], center = x_min, scale = x_range)
+valid[-"SalePrice"] <- scale(valid[-"SalePrice"], center = x_min, scale = x_range)
+
+# y_min <- min(train_y)
+# y_range <- max(train_y) - min(train_y)
+y_min <- min(train$SalePrice)
+y_range <- sd(train$SalePrice)
+# train_y <- scale(train_y, center = y_min, scale = y_range)
+train$SalePrice <- scale(train$SalePrice, center = y_min, scale = y_range)
 # valid_y <- scale(valid_y, center = y_min, scale = y_range)
 
 
@@ -74,23 +82,22 @@ train_y <- scale(train_y, center = y_min, scale = y_range)
 # lm_pred <- predict(lm_fit, newdata = as_tibble(valid_x))
 
 ## LASSO
-lasso_fit <- cv.glmnet(train_x, train_y)
+lasso_fit <- cv.glmnet(train_mat, train$SalePrice)
 plot(lasso_fit)
-lasso_pred <- predict(lasso_fit, s = "lambda.min", newx = valid_x)
+lasso_pred <- predict(lasso_fit, s = "lambda.min", newx = valid_mat)
 lasso_pred <- lasso_pred * y_range + y_min
-pred_plot(valid_y, lasso_pred, window = c(0, .2))
-lasso_rmse <- rmse(valid_y, lasso_pred) %>% set_names("LASSO")
+pred_plot(valid$SalePrice, lasso_pred, window = c(0, .2))
+lasso_rmse <- rmse(valid$SalePrice, lasso_pred) %>% set_names("LASSO")
 
 ## Random Forest
-# rf_fit <- randomForest(train_y ~ ., data = as_tibble(train_x))
-rf_fit <- randomForest(train_x, train_y)
+rf_fit <- randomForest(SalePrice ~ ., data = train)
 rf_fit
 plot(rf_fit)
 varImpPlot(rf_fit)
 rf_pred <- predict(rf_fit, newdata = valid_x)
 rf_pred <- rf_pred * y_range + y_min
-pred_plot(valid_y, rf_pred, window = c(0, .2))
-rf_rmse <- rmse(valid_y, rf_pred) %>% set_names("RF")
+pred_plot(valid$SalePrice, rf_pred, window = c(0, .2))
+rf_rmse <- rmse(valid$SalePrice, rf_pred) %>% set_names("RF")
 
 ## Boosting
 # gbm_fit <- gbm(train_y ~ train_x, data = as_tibble(train_x),
