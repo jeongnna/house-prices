@@ -105,22 +105,14 @@ rmse_list[which.min(rmse_list)]
 
 # Final prediction --------------------------------------------------------
 
+# Load data
+train_full <- read_csv("../data/processed/train_full.csv")
 test <- read_csv("../data/processed/test.csv")
 
 # Remove incomplete cases
 cpt <- complete.cases(test)
 sum(cpt) / nrow(test)  # 0.979
 test <- test %>% na.omit()
-
-# One-hot encoding
-test_mat <- model.matrix(SalePrice ~ ., data = test)
-test_mat <- test_mat[, -1]  # Exclude intercept term
-colnames(test_mat) <- str_replace(colnames(test_mat), " ", "_")
-
-#
-merged_x <- data_mat[, -excluded_cols]
-test_x <- test_mat[, -excluded_cols]
-merged_y <- data$SalePrice
 
 # Scale features
 x_min <- apply(merged_x, 2, min)
@@ -131,6 +123,14 @@ test_x <- scale(test_x, center = x_min, scale = x_range)
 y_min <- min(merged_y)
 y_range <- max(merged_y) - min(merged_y)
 merged_y <- scale(merged_y, center = y_min, scale = y_range)
+
+# Scale features
+# num_cols <- sapply(data, typeof) != "character"
+# num_cols <- names(num_cols)[num_cols] %>% setdiff("SalePrice")
+x_min <- sapply(train_full, min)
+x_range <- sapply(train_full, sd)
+train_full[-"SalePrice"] <- scale(train_full[-"SalePrice"], center = x_min, scale = x_range)
+test <- scale(test, center = x_min, scale = x_range)
 
 # Fit model
 final_fit <- randomForest(merged_x, merged_y)
