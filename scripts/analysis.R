@@ -110,7 +110,7 @@ rf_rmse <- rmse(valid_y, rf_pred) %>% set_names("RF")
 
 # Model selection ---------------------------------------------------------
 
-rmse_list <- c(err_lasso, err_rf)
+rmse_list <- c(lasso_rmse, rf_rmse)
 signif(rmse_list, 3)
 rmse_list[which.min(rmse_list)]
 
