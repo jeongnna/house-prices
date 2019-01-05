@@ -114,3 +114,8 @@ test_mat <- test_mat[, -1]
 # colnames(test_mat) <- str_replace(colnames(test_mat), " ", "_")
 valid_mat <- valid_mat %>% fit_shape(reference = train_mat)
 test_mat <- test_mat %>% fit_shape(reference = train_full_mat)
+
+write.csv(train_full_mat, str_c(out_path, "train_full_mat.csv"), row.names = FALSE)
+write.csv(train_mat, str_c(out_path, "train_mat.csv"), row.names = FALSE)
+write.csv(valid_mat, str_c(out_path, "valid_mat.csv"), row.names = FALSE)
+write.csv(test_mat, str_c(out_path, "test_mat.csv"), row.names = FALSE)
