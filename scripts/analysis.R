@@ -56,22 +56,14 @@ train <- train %>% na.omit()
 # Scale features
 # num_cols <- sapply(data, typeof) != "character"
 # num_cols <- names(num_cols)[num_cols] %>% setdiff("SalePrice")
-# x_min <- apply(train_x, 2, min)
-# x_range <- apply(train_x, 2, function(x) {max(x) - min(x)})
 x_min <- sapply(train, min)
 x_range <- sapply(train, sd)
-# train_x <- scale(train_x, center = x_min, scale = x_range)
-# valid_x <- scale(valid_x, center = x_min, scale = x_range)
 train[-"SalePrice"] <- scale(train[-"SalePrice"], center = x_min, scale = x_range)
 valid[-"SalePrice"] <- scale(valid[-"SalePrice"], center = x_min, scale = x_range)
 
-# y_min <- min(train_y)
-# y_range <- max(train_y) - min(train_y)
 y_min <- min(train$SalePrice)
 y_range <- sd(train$SalePrice)
-# train_y <- scale(train_y, center = y_min, scale = y_range)
 train$SalePrice <- scale(train$SalePrice, center = y_min, scale = y_range)
-# valid_y <- scale(valid_y, center = y_min, scale = y_range)
 
 
 # Fit models --------------------------------------------------------------
