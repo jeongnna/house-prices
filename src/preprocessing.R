@@ -113,3 +113,4 @@ test_mat <- test_mat[, -1]
 # colnames(valid_mat) <- str_replace(colnames(valid_mat), " ", "_")
 # colnames(test_mat) <- str_replace(colnames(test_mat), " ", "_")
 valid_mat <- valid_mat %>% fit_shape(reference = train_mat)
+test_mat <- test_mat %>% fit_shape(reference = train_full_mat)
