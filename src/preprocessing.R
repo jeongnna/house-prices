@@ -85,33 +85,27 @@ out_path <- "../data/processed/"
 # }
 
 # Training & validation set
-data <- read_csv(str_c(in_path, "train.csv"))
-train_full <- data %>% preprocess()
+train_full <- read_csv(str_c(in_path, "train.csv")) %>% preprocess()
 set.seed(123)
-valid <- train_full %>% sample_n(0.3 * nrow(data), replace = FALSE)
-train <- setdiff(data, valid)
+valid <- train_full %>% sample_n(0.3 * nrow(train_full), replace = FALSE)
+train <- setdiff(train_full, valid)
 write.csv(train_full, str_c(out_path, "train_full.csv"), row.names = FALSE)
 write.csv(train, str_c(out_path, "train.csv"), row.names = FALSE)
 write.csv(valid, str_c(out_path, "valid.csv"), row.names = FALSE)
 
 # Test set
-test <- read_csv(str_c(in_path, "test.csv"))
-test <- test %>% preprocess()
+test <- read_csv(str_c(in_path, "test.csv")) %>% preprocess()
 write.csv(test, file = str_c(out_path, "test.csv"), row.names = FALSE)
 
 # Create dummy variables for LASSO
-train_full_mat <- model.matrix(SalePrice ~ ., data = train_full)
-train_full_mat <- train_full_mat[, -1]  # Exclude intercept term
+train_full_mat <- model.matrix(SalePrice ~ ., data = train_full)[, -1]
 train_mat <- model.matrix(SalePrice ~ ., data = train)
-train_mat <- train_mat[, -1]
 valid_mat <- model.matrix(SalePrice ~ ., data = train)
-valid_mat <- valid_mat[, -1]
 test_mat <- model.matrix(SalePrice ~ ., data = train)
-test_mat <- test_mat[, -1]
-# colnames(train_full_mat) <- str_replace(colnames(train_full_mat), " ", "_")
-# colnames(train_mat) <- str_replace(colnames(train_mat), " ", "_")
-# colnames(valid_mat) <- str_replace(colnames(valid_mat), " ", "_")
-# colnames(test_mat) <- str_replace(colnames(test_mat), " ", "_")
+colnames(train_full_mat) <- str_replace(colnames(train_full_mat), " ", "_")
+colnames(train_mat) <- str_replace(colnames(train_mat), " ", "_")
+colnames(valid_mat) <- str_replace(colnames(valid_mat), " ", "_")
+colnames(test_mat) <- str_replace(colnames(test_mat), " ", "_")
 valid_mat <- valid_mat %>% fit_shape(reference = train_mat)
 test_mat <- test_mat %>% fit_shape(reference = train_full_mat)
 
