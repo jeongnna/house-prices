@@ -21,7 +21,7 @@ preprocess <- function(data) {
   data$PoolQC <- ifelse(is.na(data$PoolQC), "No_Pool", "Pool")
   data$Fence[is.na(data$Fence)] <- "No"
   
-  excluded <- 
+  drop_cols <- 
     c(
       "Id",
       "LotFrontage",  # Meaningless and hard to handle missing data
@@ -45,7 +45,7 @@ preprocess <- function(data) {
       "MoSold",  # Meaningless
       "YrSold"  # Meaningless
     )
-  data <- data %>% select(-excluded)
+  data <- data %>% select(-drop_cols)
   
   start_with_digit <- colnames(data) %>% str_detect("^[:digit:]")
   colnames(data)[start_with_digit] <- 
