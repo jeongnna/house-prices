@@ -6,16 +6,16 @@ preprocess <- function(data) {
     data$SalePrice <- log(data$SalePrice)
   }
   data$MSSubClass <- str_c("X", data$MSSubClass)
-  data$Alley[is.na(data$Alley)] <- "No"
+  data$Alley[is.na(data$Alley)] <- "No_Alley"
   data$YearRemodAdd <- data$YearRemodAdd - data$YearBuilt
   bsmt_cat <- str_c("Bsmt",
                     c("Qual", "Cond", "Exposure", "FinType1", "FinType2"))
   no_bsmt <- is.na(data$BsmtQual)
-  data[no_bsmt, bsmt_cat] <- "No"
+  data[no_bsmt, bsmt_cat] <- "No_Bsmt"
   garage_cat <- str_c("Garage",
                       c("Type", "Finish", "Qual", "Cond"))
   no_garage <- is.na(data$GarageQual)
-  data[no_garage, garage_cat] <- "No"
+  data[no_garage, garage_cat] <- "No_Garage"
   data$BsmtFullBath[data$BsmtFullBath > 1] <- 1
   data$FireplaceQu[is.na(data$FireplaceQu)] <- "No"
   data$PoolQC <- ifelse(is.na(data$PoolQC), "No_Pool", "Pool")
