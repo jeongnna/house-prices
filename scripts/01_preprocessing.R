@@ -47,6 +47,7 @@ preprocess <- function(data) {
     )
   data <- data %>% select(-drop_cols)
   
+  # Attach "X" ahead if some column's name start with a digit
   start_with_digit <- colnames(data) %>% str_detect("^[:digit:]")
   colnames(data)[start_with_digit] <- 
     str_c("X", colnames(data)[start_with_digit])
@@ -55,6 +56,7 @@ preprocess <- function(data) {
 }
 
 
+# Specify path of files
 in_path <- "../data/raw/"
 out_path <- "../data/processed/"
 
