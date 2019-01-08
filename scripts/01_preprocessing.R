@@ -47,7 +47,7 @@ preprocess <- function(data) {
     )
   data <- data %>% select(-drop_cols)
   
-  # Attach "X" ahead if some column's name start with a digit
+  # Attach "X" in front of column's name if it starts with a digit
   start_with_digit <- colnames(data) %>% str_detect("^[:digit:]")
   colnames(data)[start_with_digit] <- 
     str_c("X", colnames(data)[start_with_digit])
