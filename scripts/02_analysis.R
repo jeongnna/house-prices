@@ -63,7 +63,6 @@ train_mat[, num_cols] <- scale(train_mat[, num_cols], x_min, x_range)
 valid_mat[, num_cols] <- scale(valid_mat[, num_cols], x_min, x_range)
 
 y_mean <- mean(train$SalePrice)
-y_med <- median(train$SalePrice)
 y_min <- min(train$SalePrice)
 y_range <- diff(range(train$SalePrice))  # max - min
 train$SalePrice <- scale(train$SalePrice, y_min, y_range)
@@ -71,9 +70,6 @@ scale_revert <- list("center" = y_min, "scale" = y_range)
 
 
 # Model fitting -----------------------------------------------------------
-
-# lm
-# lm_fit <- lm(SalePrice ~ ., data = train)
 
 # LASSO
 set.seed(seed)
@@ -97,12 +93,19 @@ rf_pred <- predict2(rf_fit, newdata = valid[cpt, ],
 pred_plot(valid$SalePrice, rf_pred, window = c(0, .2))
 rf_rmse <- rmse(valid$SalePrice, rf_pred) %>% set_names("RF")
 
-# Boosting
-# gbm_fit <- gbm(SalePrice~ ., data = train)
+# Gradient Boosting
+set.seed(seed)
+gbm_fit <- gbm(SalePrice~ ., data = train, distribution = "gaussian",
+               n.trees = 1e4, interaction.depth = 4, shrinkage = 1e-3)
+gbm_pred <- predict2(gbm_fit, newdata = valid[cpt, ], n_trees = 10000,
+                     scale_revert = scale_revert,
+                     missing = !cpt, replace_value = y_mean)
+pred_plot(valid$SalePrice, gbm_pred, window = c(0, .2))
+gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
 
 
 # Model selection ---------------------------------------------------------
 
-rmse_list <- c(lasso_rmse, rf_rmse)
+rmse_list <- c(lasso_rmse, rf_rmse, gbm_rmse)
 signif(rmse_list, 3)
 rmse_list[which.min(rmse_list)]

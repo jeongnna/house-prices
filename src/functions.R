@@ -26,13 +26,27 @@ fit_shape_mat <- function(target, reference) {
   target[, ref_names]
 }
 
-predict2 <- function(model, newdata, scale_revert = NULL,
+predict2 <- function(model, newdata, n_trees = NULL, scale_revert = NULL,
                      missing = NULL, replace_value = NULL) {
   if (is.null(missing)) {
     missing <- rep(FALSE, nrow(newdata))
   }
   pred <- numeric()
-  pred[!missing] <- predict(model, new = newdata)
+  pred[!missing] <- predict(model, new = newdata, n.trees = n_trees)
+  if (!is.null(scale_revert)) {
+    pred[!missing] <- pred[!missing] * scale_revert$scale + scale_revert$center
+  }
+  pred[missing] <- replace_value
+  pred
+}
+
+predict_gbm <- function(model, newdata, n_trees = NULL, scale_revert = NULL,
+                        missing = NULL, replace_value = NULL) {
+  if (is.null(missing)) {
+    missing <- rep(FALSE, nrow(newdata))
+  }
+  pred <- numeric()
+  pred[!missing] <- predict(model, new = newdata, n.trees = n_trees)
   if (!is.null(scale_revert)) {
     pred[!missing] <- pred[!missing] * scale_revert$scale + scale_revert$center
   }
