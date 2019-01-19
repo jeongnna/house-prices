@@ -12,15 +12,19 @@ rmse <- function(y, yhat) {
 }
 
 
+# Cross-validation --------------------------------------------------------
+
+# Set random seed
+seed <- 123
 set.seed(seed)
 
 # Load data
 train_full <- read_csv("../data/processed/train_full.csv")
 
 # Hyperparameters for Gradient Boosting
-depths <- 4:8
-learning_rates <- c(.05, .10, .15)
-n_trees <- c(1000, 5000, 10000)
+depths <- c(4, 6, 8)
+learning_rates <- 10^runif(3, min = -2, max = -1)
+n_trees <- 10^runif(3, min = 3, max = 4)
 
 # Construct indices for cross-validation
 n_folds <- 5
@@ -33,9 +37,8 @@ for (k in 1:n_folds) {
   full_idx <- setdiff(full_idx, temp_idx)
 }
 
-
-# Cross-validation --------------------------------------------------------
-
+# Compute cross-validation
+set.seed(seed)
 pred_list <- list()
 
 for (k in 1:n_folds) {
@@ -86,10 +89,13 @@ for (k in 1:n_folds) {
   pred_list[["rf"]] <- c(pred_list[["rf"]], rf_pred)
   
   # Model: Gradient boosting
+  n_tree_max <- max(n_trees)
   for (depth in depths) {
     for (lr in learning_rates) {
       gbm_fit <- gbm(SalePrice~ ., distribution = "gaussian", data = train,
-                     n.trees = 1e4, interaction.depth = depth, shrinkage = lr)
+                     n.trees = n_tree_max,
+                     interaction.depth = depth,
+                     shrinkage = lr)
       for (n_tree in n_trees) {
         gbm_pred <- predict2(gbm_fit, newdata = valid[cpt, ],
                              n_trees = n_tree, scale_revert = scale_revert,
