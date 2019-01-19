@@ -5,6 +5,13 @@ library(gbm)
 source("../src/functions.R")
 
 
+# Functions ---------------------------------------------------------------
+
+rmse <- function(y, yhat) {
+  sqrt(mean((y - yhat)^2))
+}
+
+
 set.seed(seed)
 
 # Load data
