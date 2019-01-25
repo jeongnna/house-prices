@@ -135,7 +135,7 @@ for (depth in depths) {
 
 set.seed(seed)
 depth <- 6
-lr <- 0.006575879
+lr <- 0.003759716
 n_tree <- 6093
 gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
                n.trees = n_tree_max, 
