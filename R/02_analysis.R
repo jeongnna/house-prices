@@ -2,7 +2,7 @@ library(tidyverse)
 library(glmnet)
 library(randomForest)
 library(gbm)
-source("../src/functions.R")
+source("./functions.R")
 
 
 # Functions ---------------------------------------------------------------
@@ -13,8 +13,8 @@ source("../src/functions.R")
 #   }
 #   window <- floor(window * length(y))
 #   window[1] <- max(window[1], 0)
-#   bind_cols(y = y, yhat = yhat) %>% 
-#     mutate(id = 1:n()) %>% 
+#   bind_cols(y = y, yhat = yhat) %>%
+#     mutate(id = 1:n()) %>%
 #     slice(window[1]:window[2]) %>%
 #     ggplot() +
 #     geom_point(aes(x = id, y = y), col = "black") +
@@ -138,8 +138,8 @@ depth <- 6
 lr <- 0.003759716
 n_tree <- 6093
 gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
-               n.trees = n_tree_max, 
-               interaction.depth = depth, 
+               n.trees = n_tree_max,
+               interaction.depth = depth,
                shrinkage = lr)
 gbm_pred <- predict2(gbm_fit, newdata = valid[cpt, ], n_trees = n_tree,
                      scale_revert = scale_revert,
@@ -151,9 +151,9 @@ gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
 
 (rmse_list <- c(lasso_rmse, rf_rmse, gbm_rmse))
 
-ensemble_pred <- 
-  # list(lasso_pred, rf_pred, gbm_pred) %>% 
-  list(rf_pred, gbm_pred) %>% 
-  bind_cols() %>% 
+ensemble_pred <-
+  # list(lasso_pred, rf_pred, gbm_pred) %>%
+  list(rf_pred, gbm_pred) %>%
+  bind_cols() %>%
   apply(1, mean)
 (ensemble_rmse <- rmse(valid$SalePrice, ensemble_pred))
