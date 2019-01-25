@@ -1,6 +1,6 @@
 library(tidyverse)
-library(randomForest)
-source("../src/functions.R")
+library(gbm)
+source("./functions.R")
 
 
 # Preparation -------------------------------------------------------------
@@ -12,42 +12,44 @@ seed <- 123
 train <- read_csv("../data/processed/train_full.csv")
 test <- read_csv("../data/processed/test.csv")
 
+# Adjust data shape
 cat_cols <- sapply(train, typeof) == "character"
 cat_cols <- names(cat_cols)[cat_cols]
 num_cols <- colnames(train) %>% setdiff(c(cat_cols, "SalePrice"))
 train <- train %>% mutate_if(is.character, as.factor)
 test <- test %>% fit_shape_tbl(reference = train, cols = cat_cols)
 
-# Remove incomplete cases
-sum(complete.cases(train)) / nrow(train)  # 99.2%
-train <- train %>% na.omit()
-cpt <- complete.cases(test)
+# Impute missing values
+train <- impute_na(train, num_cols, cat_cols)
+test <- impute_na(test, num_cols, cat_cols)
 
 # Normalize features
-x_min <- sapply(train[num_cols], min)
-x_range <- sapply(train[num_cols], function(x) diff(range(x)))  # max - min
-train[num_cols] <- scale(train[num_cols], x_min, x_range)
-test[num_cols] <- scale(test[num_cols], x_min, x_range)
+x_mean <- sapply(train[num_cols], mean)
+x_sd <- sapply(train[num_cols], sd)
+train[num_cols] <- scale(train[num_cols], x_mean, x_sd)
+test[num_cols] <- scale(test[num_cols], x_mean, x_sd)
 
 y_mean <- mean(train$SalePrice)
-y_med <- median(train$SalePrice)
-y_min <- min(train$SalePrice)
-y_range <- diff(range(train$SalePrice))  # max - min
-train$SalePrice <- scale(train$SalePrice, y_min, y_range)
-scale_revert <- list("center" = y_min, "scale" = y_range)
+y_sd <- sd(train$SalePrice)
+train$SalePrice <- scale(train$SalePrice, y_mean, y_sd)
+scale_revert <- list("center" = y_mean, "scale" = y_sd)
 
 
 # Prediction --------------------------------------------------------------
 
-# Random Forest
+# Gradient Boosting
 set.seed(seed)
-rf_fit <- randomForest(SalePrice ~ ., data = train)
-rf_fit
-plot(rf_fit)
-varImpPlot(rf_fit)
-rf_pred <- predict2(rf_fit, newdata = test[cpt, ],
-                    scale_revert = scale_revert,
-                    missing = !cpt, replace_value = y_mean)
+depth <- 6
+lr <- 0.003759716
+n_tree <- 6093
+gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
+               n.trees = n_tree,
+               interaction.depth = depth,
+               shrinkage = lr)
+gbm_pred <- predict2(gbm_fit, newdata = test, n_trees = n_tree,
+                     scale_revert = scale_revert)
 
-pred_tbl <- tibble(Id = 1461:2919, SalePrice = exp(rf_pred))
-write.csv(pred_tbl, "../submission.csv", row.names = FALSE)
+# Submission
+id <- 1461:2919
+submission <- tibble("Id" = id, "SalePrice" = exp(gbm_pred))
+write.csv(submission, "../submission.csv", row.names = FALSE)

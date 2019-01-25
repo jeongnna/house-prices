@@ -1,3 +1,7 @@
+rmse <- function(y, yhat) {
+  sqrt(mean((y - yhat)^2))
+}
+
 fit_shape_tbl <- function(target, reference, cols) {
   cat_levels <- lapply(reference[cols], levels)
   for (i in seq_along(cat_levels)) {
@@ -85,3 +89,21 @@ apply_pc_loading <- function(data, num_cols, loading) {
     select(-num_cols) %>%
     bind_cols(x_pc %>% as_tibble())
 }
+
+# pred_plot <- function(y, yhat, window = NULL) {
+#   if (is.null(window)) {
+#     window <- c(0, 1)
+#   }
+#   window <- floor(window * length(y))
+#   window[1] <- max(window[1], 0)
+#   bind_cols(y = y, yhat = yhat) %>%
+#     mutate(id = 1:n()) %>%
+#     slice(window[1]:window[2]) %>%
+#     ggplot() +
+#     geom_point(aes(x = id, y = y), col = "black") +
+#     geom_line(aes(x = id, y = y), col = "black") +
+#     geom_point(aes(x = id, y = yhat), col = "red") +
+#     geom_line(aes(x = id, y = yhat), col = "red") +
+#     labs(x = "Obs", y = "SalePrice") +
+#     theme_bw()
+# }

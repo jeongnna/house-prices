@@ -5,31 +5,6 @@ library(gbm)
 source("./functions.R")
 
 
-# Functions ---------------------------------------------------------------
-
-# pred_plot <- function(y, yhat, window = NULL) {
-#   if (is.null(window)) {
-#     window <- c(0, 1)
-#   }
-#   window <- floor(window * length(y))
-#   window[1] <- max(window[1], 0)
-#   bind_cols(y = y, yhat = yhat) %>%
-#     mutate(id = 1:n()) %>%
-#     slice(window[1]:window[2]) %>%
-#     ggplot() +
-#     geom_point(aes(x = id, y = y), col = "black") +
-#     geom_line(aes(x = id, y = y), col = "black") +
-#     geom_point(aes(x = id, y = yhat), col = "red") +
-#     geom_line(aes(x = id, y = yhat), col = "red") +
-#     labs(x = "Obs", y = "SalePrice") +
-#     theme_bw()
-# }
-
-rmse <- function(y, yhat) {
-  sqrt(mean((y - yhat)^2))
-}
-
-
 # Preparation -------------------------------------------------------------
 
 # Random seed number
@@ -65,8 +40,7 @@ train_mat <- model.matrix(SalePrice ~ ., data = train)[, -1]
 valid_mat <- model.matrix(SalePrice ~ ., data = valid)[, -1]
 
 # Normalize features
-num_cols <- colnames(train) %>% setdiff(c(cat_cols, "SalePrice"))
-
+# num_cols <- colnames(train) %>% setdiff(c(cat_cols, "SalePrice"))
 x_mean <- sapply(train[num_cols], mean)
 x_sd <- sapply(train[num_cols], sd)
 train[num_cols] <- scale(train[num_cols], x_mean, x_sd)
@@ -138,7 +112,7 @@ depth <- 6
 lr <- 0.003759716
 n_tree <- 6093
 gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
-               n.trees = n_tree_max,
+               n.trees = n_tree,
                interaction.depth = depth,
                shrinkage = lr)
 gbm_pred <- predict2(gbm_fit, newdata = valid[cpt, ], n_trees = n_tree,
