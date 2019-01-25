@@ -7,23 +7,23 @@ source("../src/functions.R")
 
 # Functions ---------------------------------------------------------------
 
-pred_plot <- function(y, yhat, window = NULL) {
-  if (is.null(window)) {
-    window <- c(0, 1)
-  }
-  window <- floor(window * length(y))
-  window[1] <- max(window[1], 0)
-  bind_cols(y = y, yhat = yhat) %>% 
-    mutate(id = 1:n()) %>% 
-    slice(window[1]:window[2]) %>%
-    ggplot() +
-    geom_point(aes(x = id, y = y), col = "black") +
-    geom_line(aes(x = id, y = y), col = "black") +
-    geom_point(aes(x = id, y = yhat), col = "red") +
-    geom_line(aes(x = id, y = yhat), col = "red") +
-    labs(x = "Obs", y = "SalePrice") +
-    theme_bw()
-}
+# pred_plot <- function(y, yhat, window = NULL) {
+#   if (is.null(window)) {
+#     window <- c(0, 1)
+#   }
+#   window <- floor(window * length(y))
+#   window[1] <- max(window[1], 0)
+#   bind_cols(y = y, yhat = yhat) %>% 
+#     mutate(id = 1:n()) %>% 
+#     slice(window[1]:window[2]) %>%
+#     ggplot() +
+#     geom_point(aes(x = id, y = y), col = "black") +
+#     geom_line(aes(x = id, y = y), col = "black") +
+#     geom_point(aes(x = id, y = yhat), col = "red") +
+#     geom_line(aes(x = id, y = yhat), col = "red") +
+#     labs(x = "Obs", y = "SalePrice") +
+#     theme_bw()
+# }
 
 rmse <- function(y, yhat) {
   sqrt(mean((y - yhat)^2))
@@ -39,34 +39,45 @@ seed <- 123
 train <- read_csv("../data/processed/train.csv")
 valid <- read_csv("../data/processed/valid.csv")
 
+# Adjust data shape
 cat_cols <- sapply(train, typeof) == "character"
 cat_cols <- names(cat_cols)[cat_cols]
 num_cols <- colnames(train) %>% setdiff(c(cat_cols, "SalePrice"))
 train <- train %>% mutate_if(is.character, as.factor)
 valid <- valid %>% fit_shape_tbl(reference = train, cols = cat_cols)
 
+# Impute missing values
+train <- impute_na(train, num_cols, cat_cols)
+valid <- impute_na(valid, num_cols, cat_cols)
+
 # Remove incomplete cases
-sum(complete.cases(train)) / nrow(train)  # 99.2%
-train <- train %>% na.omit()
+# sum(complete.cases(train)) / nrow(train)  # 99.2%
+# train <- train %>% na.omit()
 cpt <- complete.cases(valid)
+
+# PCA
+# loading <- train %>% get_pc_loading(num_cols, threshold = .99)
+# train <- train %>% apply_pc_loading(num_cols, loading)
+# valid <- valid %>% apply_pc_loading(num_cols, loading)
 
 # Create dummy variables for LASSO
 train_mat <- model.matrix(SalePrice ~ ., data = train)[, -1]
 valid_mat <- model.matrix(SalePrice ~ ., data = valid)[, -1]
 
 # Normalize features
-x_min <- sapply(train[num_cols], min)
-x_range <- sapply(train[num_cols], function(x) diff(range(x)))  # max - min
-train[num_cols] <- scale(train[num_cols], x_min, x_range)
-valid[num_cols] <- scale(valid[num_cols], x_min, x_range)
-train_mat[, num_cols] <- scale(train_mat[, num_cols], x_min, x_range)
-valid_mat[, num_cols] <- scale(valid_mat[, num_cols], x_min, x_range)
+num_cols <- colnames(train) %>% setdiff(c(cat_cols, "SalePrice"))
+
+x_mean <- sapply(train[num_cols], mean)
+x_sd <- sapply(train[num_cols], sd)
+train[num_cols] <- scale(train[num_cols], x_mean, x_sd)
+valid[num_cols] <- scale(valid[num_cols], x_mean, x_sd)
+train_mat[, num_cols] <- scale(train_mat[, num_cols], x_mean, x_sd)
+valid_mat[, num_cols] <- scale(valid_mat[, num_cols], x_mean, x_sd)
 
 y_mean <- mean(train$SalePrice)
-y_min <- min(train$SalePrice)
-y_range <- diff(range(train$SalePrice))  # max - min
-train$SalePrice <- scale(train$SalePrice, y_min, y_range)
-scale_revert <- list("center" = y_min, "scale" = y_range)
+y_sd <- sd(train$SalePrice)
+train$SalePrice <- scale(train$SalePrice, y_mean, y_sd)
+scale_revert <- list("center" = y_mean, "scale" = y_sd)
 
 
 # Model fitting -----------------------------------------------------------
@@ -101,8 +112,8 @@ best_gbm <- NULL
 for (depth in depths) {
   for (lr in learning_rates) {
     gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
-                   n.trees = n_tree_max, 
-                   interaction.depth = depth, 
+                   n.trees = n_tree_max,
+                   interaction.depth = depth,
                    shrinkage = lr)
     for (n_tree in n_trees) {
       gbm_pred <- predict2(gbm_fit, newdata = valid[cpt, ], n_trees = n_tree,
@@ -110,10 +121,10 @@ for (depth in depths) {
                            missing = !cpt, replace_value = y_mean)
       gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
       rmses <- c(rmses, gbm_rmse)
-      
+
       cat("depth: ", depth, ", lr: ", lr, ", n_tree: ", n_tree,
           " ---> rmse: ", gbm_rmse, "\n", sep = "")
-      
+
       if (gbm_rmse < best_rmse) {
         best_rmse <- gbm_rmse
         best_gbm <- gbm_fit
@@ -122,39 +133,27 @@ for (depth in depths) {
   }
 }
 
-depths <- c(4, 6, 6, 6)
-learning_rates <- c(0.006575879, 0.003759716, 0.006575879, 0.05834919)
-n_trees <- c(8197, 8197, 6093, 818)
-gbm_pred_list <- list()
-gbm_rmse_list <- list()
-
-for (i in 1:4) {
-  depth <- depths[i]
-  lr <- learning_rates[i]
-  n_tree <- n_trees[i]
-  gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
-                 n.trees = n_tree_max, 
-                 interaction.depth = depth, 
-                 shrinkage = lr)
-  gbm_pred <- predict2(gbm_fit, newdata = valid[cpt, ], n_trees = n_tree,
-                       scale_revert = scale_revert,
-                       missing = !cpt, replace_value = y_mean)
-  gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
-  
-  gbm_pred_list <- gbm_pred_list %>% append(list(gbm_pred))
-  gbm_rmse_list <- gbm_rmse_list %>% append(list(gbm_rmse))
-}
+set.seed(seed)
+depth <- 6
+lr <- 0.006575879
+n_tree <- 6093
+gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
+               n.trees = n_tree_max, 
+               interaction.depth = depth, 
+               shrinkage = lr)
+gbm_pred <- predict2(gbm_fit, newdata = valid[cpt, ], n_trees = n_tree,
+                     scale_revert = scale_revert,
+                     missing = !cpt, replace_value = y_mean)
+gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
 
 
 # Model ensemble ----------------------------------------------------------
 
-(rmse_list <- c(lasso_rmse, rf_rmse, unlist(gbm_rmse_list)))
+(rmse_list <- c(lasso_rmse, rf_rmse, gbm_rmse))
 
 ensemble_pred <- 
-  gbm_pred_list %>% 
-  append(list(lasso_pred, rf_pred)) %>% 
-  .[c(1:4, 6)] %>% 
+  # list(lasso_pred, rf_pred, gbm_pred) %>% 
+  list(rf_pred, gbm_pred) %>% 
   bind_cols() %>% 
   apply(1, mean)
-
-rmse(valid$SalePrice, ensemble_pred)
+(ensemble_rmse <- rmse(valid$SalePrice, ensemble_pred))
