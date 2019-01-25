@@ -30,8 +30,19 @@ valid <- impute_na(valid, num_cols, cat_cols)
 # train <- train %>% na.omit()
 cpt <- complete.cases(valid)
 
+# Normalize features
+x_mean <- sapply(train[num_cols], mean)
+x_sd <- sapply(train[num_cols], sd)
+train[num_cols] <- scale(train[num_cols], x_mean, x_sd)
+valid[num_cols] <- scale(valid[num_cols], x_mean, x_sd)
+
+y_mean <- mean(train$SalePrice)
+y_sd <- sd(train$SalePrice)
+train$SalePrice <- scale(train$SalePrice, y_mean, y_sd)
+scale_revert <- list("center" = y_mean, "scale" = y_sd)
+
 # PCA
-# loading <- train %>% get_pc_loading(num_cols, threshold = .99)
+# loading <- train %>% get_pc_loading(num_cols, threshold = .8)
 # train <- train %>% apply_pc_loading(num_cols, loading)
 # valid <- valid %>% apply_pc_loading(num_cols, loading)
 
@@ -39,24 +50,10 @@ cpt <- complete.cases(valid)
 train_mat <- model.matrix(SalePrice ~ ., data = train)[, -1]
 valid_mat <- model.matrix(SalePrice ~ ., data = valid)[, -1]
 
-# Normalize features
-# num_cols <- colnames(train) %>% setdiff(c(cat_cols, "SalePrice"))
-x_mean <- sapply(train[num_cols], mean)
-x_sd <- sapply(train[num_cols], sd)
-train[num_cols] <- scale(train[num_cols], x_mean, x_sd)
-valid[num_cols] <- scale(valid[num_cols], x_mean, x_sd)
-train_mat[, num_cols] <- scale(train_mat[, num_cols], x_mean, x_sd)
-valid_mat[, num_cols] <- scale(valid_mat[, num_cols], x_mean, x_sd)
-
-y_mean <- mean(train$SalePrice)
-y_sd <- sd(train$SalePrice)
-train$SalePrice <- scale(train$SalePrice, y_mean, y_sd)
-scale_revert <- list("center" = y_mean, "scale" = y_sd)
-
 
 # Model fitting -----------------------------------------------------------
 
-# LASSO
+# LASSO: 0.1723852 in validation set
 set.seed(seed)
 lasso_fit <- cv.glmnet(train_mat, train$SalePrice)
 lasso_pred <- predict2(lasso_fit, newdata = valid_mat,
@@ -64,7 +61,7 @@ lasso_pred <- predict2(lasso_fit, newdata = valid_mat,
                        missing = !cpt, replace_value = y_mean)
 lasso_rmse <- rmse(valid$SalePrice, lasso_pred) %>% set_names("LASSO")
 
-# Random Forest
+# Random Forest: 0.1366698 in validation set
 set.seed(seed)
 rf_fit <- randomForest(SalePrice ~ ., data = train)
 rf_pred <- predict2(rf_fit, newdata = valid[cpt, ],
@@ -72,7 +69,7 @@ rf_pred <- predict2(rf_fit, newdata = valid[cpt, ],
                     missing = !cpt, replace_value = y_mean)
 rf_rmse <- rmse(valid$SalePrice, rf_pred) %>% set_names("RF")
 
-# Gradient Boosting
+# Gradient Boosting: 0.1177367 in validation set
 set.seed(seed)
 depths <- c(4, 6, 8) %>% sort()
 learning_rates <- 10^runif(5, min = -3, max = -1) %>% sort()
@@ -111,6 +108,9 @@ set.seed(seed)
 depth <- 6
 lr <- 0.003759716
 n_tree <- 6093
+# depth <- 6
+# lr <- 0.006575879
+# n_tree <- 2265
 gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
                n.trees = n_tree,
                interaction.depth = depth,
@@ -126,7 +126,6 @@ gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
 (rmse_list <- c(lasso_rmse, rf_rmse, gbm_rmse))
 
 ensemble_pred <-
-  # list(lasso_pred, rf_pred, gbm_pred) %>%
   list(rf_pred, gbm_pred) %>%
   bind_cols() %>%
   apply(1, mean)

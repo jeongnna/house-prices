@@ -37,7 +37,7 @@ scale_revert <- list("center" = y_mean, "scale" = y_sd)
 
 # Prediction --------------------------------------------------------------
 
-# Gradient Boosting
+# Gradient Boosting: score 0.12736 in test set
 set.seed(seed)
 depth <- 6
 lr <- 0.003759716
