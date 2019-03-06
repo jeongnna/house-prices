@@ -27,8 +27,9 @@ cv_lasso_fit <- function(x, y, params) {
 }
 
 model_predict.cv.glmnet <- function(object, newdata, params) {
+  newdata_mat <- model.matrix(~ ., data = newdata)
   predict(
-    object, newdata,
+    object, newdata_mat,
     s = params$lambda,
     type = "response"
   )

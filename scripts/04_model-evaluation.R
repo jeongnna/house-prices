@@ -1,9 +1,7 @@
 library(tidyverse)
-library(glmnet)
-library(randomForest)
-library(gbm)
 source("src/source_dir.R")
 source("src/preprocessing_utils.R")
+source("src/rmse.R")
 source_dir("src/models")
 
 
@@ -16,66 +14,54 @@ seed <- 123
 train <- read_csv("data/processed/train.csv")
 valid <- read_csv("data/processed/valid.csv")
 
+# split x and y
+x_train <- train %>% select(-SalePrice)
+y_train <- train$SalePrice
+x_val <- valid %>% select(-SalePrice)
+y_val <- valid$SalePrice
+
 # adjust data shape
-cat_cols <- sapply(train, typeof) == "character"
+cat_cols <- sapply(x_train, typeof) == "character"
 cat_cols <- names(cat_cols)[cat_cols]
-num_cols <- colnames(train) %>% setdiff(c(cat_cols, "SalePrice"))
-train <- train %>% mutate_if(is.character, as.factor)
-valid <- valid %>% fit_shape_tbl(reference = train, cols = cat_cols)
+num_cols <- colnames(x_train) %>% setdiff(c(cat_cols, "SalePrice"))
+x_train <- x_train %>% mutate_if(is.character, as.factor)
+x_val <- x_val %>% fit_shape(reference = x_train, cols = cat_cols)
 
 # impute missing values
-train <- impute_na(train, num_cols, cat_cols)
-valid <- impute_na(valid, num_cols, cat_cols)
-
-# remove incomplete cases
-# sum(complete.cases(train)) / nrow(train)  # 99.2%
-# train <- train %>% na.omit()
-cpt <- complete.cases(valid)
+x_train <- na_impute(x_train, num_cols, cat_cols)
+x_val <- na_impute(x_val, num_cols, cat_cols)
 
 # normalize features
-x_mean <- sapply(train[num_cols], mean)
-x_sd <- sapply(train[num_cols], sd)
-train[num_cols] <- scale(train[num_cols], x_mean, x_sd)
-valid[num_cols] <- scale(valid[num_cols], x_mean, x_sd)
+x_mean <- sapply(x_train[num_cols], mean)
+x_sd <- sapply(x_train[num_cols], sd)
+x_train[num_cols] <- scale(x_train[num_cols], x_mean, x_sd)
+x_val[num_cols] <- scale(x_val[num_cols], x_mean, x_sd)
 
-y_mean <- mean(train$SalePrice)
-y_sd <- sd(train$SalePrice)
-train$SalePrice <- scale(train$SalePrice, y_mean, y_sd)
-scale_revert <- list("center" = y_mean, "scale" = y_sd)
-
-# PCA
-# loading <- train %>% get_pc_loading(num_cols, threshold = .8)
-# train <- train %>% apply_pc_loading(num_cols, loading)
-# valid <- valid %>% apply_pc_loading(num_cols, loading)
-
-# create dummy variables for LASSO
-train_mat <- model.matrix(SalePrice ~ ., data = train)[, -1]
-valid_mat <- model.matrix(SalePrice ~ ., data = valid)[, -1]
+y_mean <- mean(y_train)
+y_sd <- sd(y_train)
+y_train <- scale(y_train, y_mean, y_sd)
 
 
 # Model fitting -----------------------------------------------------------
 
-# LASSO: 0.1723852 rmse in validation set
+# LASSO: score 0.1612084 in validation set
 set.seed(seed)
-# lasso_fitted <- cv.glmnet(train_mat, train$SalePrice)
-# lasso_pred <- predict2(lasso_fitted, newdata = valid_mat,
-#                        scale_revert = scale_revert,
-#                        missing = !cpt, replace_value = y_mean)
-# lasso_rmse <- rmse(valid$SalePrice, lasso_pred) %>% set_names("LASSO")
 lasso_params <- list(type_measure = "mse")
-lasso_fitted <- lasso_fit(x_train, y_train, lasso_params)
-lasso_params$lambda <- 0
+lasso_fitted <- cv_lasso_fit(x_train, y_train, lasso_params)
+lasso_params$lambda <- lasso_fitted$lambda.min
 lasso_pred <- model_predict(lasso_fitted, x_val, lasso_params)
+lasso_pred <- lasso_pred * y_sd + y_mean
+lasso_rmse <- rmse(lasso_pred, y_val) %>% set_names("LASSO")
 
-# Random Forest: 0.1366698 rmse in validation set
+# Random Forest: score 0.1367729 in validation set
 set.seed(seed)
-rf_fitted <- randomForest(SalePrice ~ ., data = train)
-rf_pred <- predict2(rf_fitted, newdata = valid[cpt, ],
-                    scale_revert = scale_revert,
-                    missing = !cpt, replace_value = y_mean)
-rf_rmse <- rmse(valid$SalePrice, rf_pred) %>% set_names("RF")
+rf_params <- list(n_trees = 500)
+rf_fitted <- randomforest_fit(x_train, y_train, rf_params)
+rf_pred <- model_predict(rf_fitted, x_val, rf_params)
+rf_pred <- rf_pred * y_sd + y_mean
+rf_rmse <- rmse(rf_pred, y_val) %>% set_names("RF")
 
-# Gradient Boosting: 0.1177367 rmse in validation set
+# Gradient Boosting: score 0.1235108 in validation set
 set.seed(seed)
 depths <- c(4, 6, 8) %>% sort()
 learning_rates <- 10^runif(5, min = -3, max = -1) %>% sort()
@@ -88,15 +74,23 @@ best_gbm <- NULL
 
 for (depth in depths) {
   for (lr in learning_rates) {
-    gbm_fitted <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
-                   n.trees = n_tree_max,
-                   interaction.depth = depth,
-                   shrinkage = lr)
+    set.seed(seed)
+    gbm_params <- list(
+      dist = "gaussian",
+      n_trees = n_tree_max,
+      depth = depth,
+      learning_rate = lr
+    )
+    gbm_fitted <- gbm_fit(x_train, y_train, gbm_params)
     for (n_tree in n_trees) {
-      gbm_pred <- predict2(gbm_fitted, newdata = valid[cpt, ], n_trees = n_tree,
-                           scale_revert = scale_revert,
-                           missing = !cpt, replace_value = y_mean)
-      gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
+      # gbm_pred <- predict2(gbm_fitted, newdata = valid[cpt, ], n_trees = n_tree,
+      #                      scale_revert = scale_revert,
+      #                      missing = !cpt, replace_value = y_mean)
+      # gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
+      gbm_params$n_trees <- n_tree
+      gbm_pred <- model_predict(gbm_fitted, x_val, gbm_params)
+      gbm_pred <- gbm_pred * y_sd + y_mean
+      gbm_rmse <- rmse(gbm_pred, y_val)
       rmses <- c(rmses, gbm_rmse)
 
       cat("depth: ", depth, ", lr: ", lr, ", n_tree: ", n_tree,
@@ -111,20 +105,16 @@ for (depth in depths) {
 }
 
 set.seed(seed)
-depth <- 6
-lr <- 0.003759716
-n_tree <- 6093
-# depth <- 6
-# lr <- 0.006575879
-# n_tree <- 2265
-gbm_fitted <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
-               n.trees = n_tree,
-               interaction.depth = depth,
-               shrinkage = lr)
-gbm_pred <- predict2(gbm_fitted, newdata = valid[cpt, ], n_trees = n_tree,
-                     scale_revert = scale_revert,
-                     missing = !cpt, replace_value = y_mean)
-gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
+gbm_params <- list(
+  dist = "gaussian",
+  n_trees = 6093,
+  depth = 4,
+  learning_rate = 0.006575879
+)
+gbm_fitted <- gbm_fit(x_train, y_train, gbm_params)
+gbm_pred <- model_predict(gbm_fitted, x_val, gbm_params)
+gbm_pred <- gbm_pred * y_sd + y_mean
+gbm_rmse <- rmse(gbm_pred, y_val) %>% set_names("GBM")
 
 
 # Model ensemble ----------------------------------------------------------

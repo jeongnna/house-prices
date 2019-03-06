@@ -1,6 +1,8 @@
 library(tidyverse)
-library(gbm)
-source("src/functions.R")
+source("src/source_dir.R")
+source("src/preprocessing_utils.R")
+source("src/rmse.R")
+source_dir("src/models")
 
 
 # Preparation -------------------------------------------------------------
@@ -12,44 +14,48 @@ seed <- 123
 train <- read_csv("data/processed/train_full.csv")
 test <- read_csv("data/processed/test.csv")
 
+# split x and y
+x_train <- train %>% select(-SalePrice)
+y_train <- train$SalePrice
+x_test <- test
+
 # adjust data shape
-cat_cols <- sapply(train, typeof) == "character"
+cat_cols <- sapply(x_train, typeof) == "character"
 cat_cols <- names(cat_cols)[cat_cols]
-num_cols <- colnames(train) %>% setdiff(c(cat_cols, "SalePrice"))
-train <- train %>% mutate_if(is.character, as.factor)
-test <- test %>% fit_shape_tbl(reference = train, cols = cat_cols)
+num_cols <- colnames(x_train) %>% setdiff(c(cat_cols, "SalePrice"))
+x_train <- x_train %>% mutate_if(is.character, as.factor)
+x_test <- x_test %>% fit_shape(reference = x_train, cols = cat_cols)
 
 # impute missing values
-train <- impute_na(train, num_cols, cat_cols)
-test <- impute_na(test, num_cols, cat_cols)
+x_train <- na_impute(x_train, num_cols, cat_cols)
+x_test <- na_impute(x_test, num_cols, cat_cols)
 
 # normalize features
-x_mean <- sapply(train[num_cols], mean)
-x_sd <- sapply(train[num_cols], sd)
-train[num_cols] <- scale(train[num_cols], x_mean, x_sd)
-test[num_cols] <- scale(test[num_cols], x_mean, x_sd)
+x_mean <- sapply(x_train[num_cols], mean)
+x_sd <- sapply(x_train[num_cols], sd)
+x_train[num_cols] <- scale(x_train[num_cols], x_mean, x_sd)
+x_test[num_cols] <- scale(x_test[num_cols], x_mean, x_sd)
 
-y_mean <- mean(train$SalePrice)
-y_sd <- sd(train$SalePrice)
-train$SalePrice <- scale(train$SalePrice, y_mean, y_sd)
-scale_revert <- list("center" = y_mean, "scale" = y_sd)
+y_mean <- mean(y_train)
+y_sd <- sd(y_train)
+y_train <- scale(y_train, y_mean, y_sd)
 
 
 # Prediction --------------------------------------------------------------
 
-# gradient boosting: score 0.12736 in test set
+# gradient boosting: score 0.12992 in test set
 set.seed(seed)
-depth <- 6
-lr <- 0.003759716
-n_tree <- 6093
-gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
-               n.trees = n_tree,
-               interaction.depth = depth,
-               shrinkage = lr)
-gbm_pred <- predict2(gbm_fit, newdata = test, n_trees = n_tree,
-                     scale_revert = scale_revert)
+gbm_params <- list(
+  dist = "gaussian",
+  n_trees = 6093,
+  depth = 4,
+  learning_rate = 0.006575879
+)
+gbm_fitted <- gbm_fit(x_train, y_train, gbm_params)
+gbm_pred <- model_predict(gbm_fitted, x_test, gbm_params)
+gbm_pred <- gbm_pred * y_sd + y_mean
 
-# Submission
+# submission
 id <- 1461:2919
 submission <- tibble("Id" = id, "SalePrice" = exp(gbm_pred))
-write.csv(submission, "submission.csv", row.names = FALSE)
+write_csv(submission, "submission.csv")

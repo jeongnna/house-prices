@@ -1,4 +1,4 @@
-fit_shape_tbl <- function(target, reference, cols) {
+fit_shape <- function(target, reference, cols) {
   cat_levels <- lapply(reference[cols], levels)
   for (i in seq_along(cat_levels)) {
     col <- cols[i]
@@ -8,22 +8,7 @@ fit_shape_tbl <- function(target, reference, cols) {
 }
 
 
-predict2 <- function(model, newdata, n_trees = NULL, scale_revert = NULL,
-                     missing = NULL, replace_value = NULL) {
-  if (is.null(missing)) {
-    missing <- rep(FALSE, nrow(newdata))
-  }
-  pred <- numeric()
-  pred[!missing] <- predict(model, new = newdata, n.trees = n_trees)
-  if (!is.null(scale_revert)) {
-    pred[!missing] <- pred[!missing] * scale_revert$scale + scale_revert$center
-  }
-  pred[missing] <- replace_value
-  pred
-}
-
-
-impute_na <- function(data, num_cols, cat_cols) {
+na_impute <- function(data, num_cols, cat_cols) {
   
   impute_na_num <- function(data) {
     data %>% lapply(function(x) {x[is.na(x)] <- median(x, na.rm = TRUE); x})
