@@ -7,30 +7,30 @@ source("src/functions.R")
 
 # Preparation -------------------------------------------------------------
 
-# Random seed number
+# random seed number
 seed <- 123
 
-# Load data
+# load data
 train <- read_csv("data/processed/train.csv")
 valid <- read_csv("data/processed/valid.csv")
 
-# Adjust data shape
+# adjust data shape
 cat_cols <- sapply(train, typeof) == "character"
 cat_cols <- names(cat_cols)[cat_cols]
 num_cols <- colnames(train) %>% setdiff(c(cat_cols, "SalePrice"))
 train <- train %>% mutate_if(is.character, as.factor)
 valid <- valid %>% fit_shape_tbl(reference = train, cols = cat_cols)
 
-# Impute missing values
+# impute missing values
 train <- impute_na(train, num_cols, cat_cols)
 valid <- impute_na(valid, num_cols, cat_cols)
 
-# Remove incomplete cases
+# remove incomplete cases
 # sum(complete.cases(train)) / nrow(train)  # 99.2%
 # train <- train %>% na.omit()
 cpt <- complete.cases(valid)
 
-# Normalize features
+# normalize features
 x_mean <- sapply(train[num_cols], mean)
 x_sd <- sapply(train[num_cols], sd)
 train[num_cols] <- scale(train[num_cols], x_mean, x_sd)
@@ -46,7 +46,7 @@ scale_revert <- list("center" = y_mean, "scale" = y_sd)
 # train <- train %>% apply_pc_loading(num_cols, loading)
 # valid <- valid %>% apply_pc_loading(num_cols, loading)
 
-# Create dummy variables for LASSO
+# create dummy variables for LASSO
 train_mat <- model.matrix(SalePrice ~ ., data = train)[, -1]
 valid_mat <- model.matrix(SalePrice ~ ., data = valid)[, -1]
 
@@ -61,7 +61,7 @@ lasso_pred <- predict2(lasso_fit, newdata = valid_mat,
                        missing = !cpt, replace_value = y_mean)
 lasso_rmse <- rmse(valid$SalePrice, lasso_pred) %>% set_names("LASSO")
 
-# Random Forest: 0.1366698 in validation set
+# random forest: 0.1366698 in validation set
 set.seed(seed)
 rf_fit <- randomForest(SalePrice ~ ., data = train)
 rf_pred <- predict2(rf_fit, newdata = valid[cpt, ],
@@ -69,7 +69,7 @@ rf_pred <- predict2(rf_fit, newdata = valid[cpt, ],
                     missing = !cpt, replace_value = y_mean)
 rf_rmse <- rmse(valid$SalePrice, rf_pred) %>% set_names("RF")
 
-# Gradient Boosting: 0.1177367 in validation set
+# gradient boosting: 0.1177367 in validation set
 set.seed(seed)
 depths <- c(4, 6, 8) %>% sort()
 learning_rates <- 10^runif(5, min = -3, max = -1) %>% sort()

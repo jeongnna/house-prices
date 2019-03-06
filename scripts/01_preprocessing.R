@@ -56,11 +56,11 @@ preprocess <- function(data) {
 }
 
 
-# Specify path of files
+# file path
 in_path <- "data/raw/"
 out_path <- "data/processed/"
 
-# Training & validation set
+# training & validation set
 train_full <- read_csv(str_c(in_path, "train.csv")) %>% preprocess()
 set.seed(123)
 valid <- train_full %>% sample_n(0.3 * nrow(train_full), replace = FALSE)
@@ -69,6 +69,6 @@ write.csv(train_full, str_c(out_path, "train_full.csv"), row.names = FALSE)
 write.csv(train, str_c(out_path, "train.csv"), row.names = FALSE)
 write.csv(valid, str_c(out_path, "valid.csv"), row.names = FALSE)
 
-# Test set
+# test set
 test <- read_csv(str_c(in_path, "test.csv")) %>% preprocess()
 write.csv(test, str_c(out_path, "test.csv"), row.names = FALSE)
