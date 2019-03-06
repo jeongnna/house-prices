@@ -1,6 +1,6 @@
 library(tidyverse)
 library(gbm)
-source("./functions.R")
+source("src/functions.R")
 
 
 # Preparation -------------------------------------------------------------
@@ -9,8 +9,8 @@ source("./functions.R")
 seed <- 123
 
 # Load data
-train <- read_csv("../data/processed/train_full.csv")
-test <- read_csv("../data/processed/test.csv")
+train <- read_csv("data/processed/train_full.csv")
+test <- read_csv("data/processed/test.csv")
 
 # Adjust data shape
 cat_cols <- sapply(train, typeof) == "character"
@@ -52,4 +52,4 @@ gbm_pred <- predict2(gbm_fit, newdata = test, n_trees = n_tree,
 # Submission
 id <- 1461:2919
 submission <- tibble("Id" = id, "SalePrice" = exp(gbm_pred))
-write.csv(submission, "../submission.csv", row.names = FALSE)
+write.csv(submission, "submission.csv", row.names = FALSE)

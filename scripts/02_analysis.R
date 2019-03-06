@@ -2,7 +2,7 @@ library(tidyverse)
 library(glmnet)
 library(randomForest)
 library(gbm)
-source("./functions.R")
+source("src/functions.R")
 
 
 # Preparation -------------------------------------------------------------
@@ -11,8 +11,8 @@ source("./functions.R")
 seed <- 123
 
 # Load data
-train <- read_csv("../data/processed/train.csv")
-valid <- read_csv("../data/processed/valid.csv")
+train <- read_csv("data/processed/train.csv")
+valid <- read_csv("data/processed/valid.csv")
 
 # Adjust data shape
 cat_cols <- sapply(train, typeof) == "character"

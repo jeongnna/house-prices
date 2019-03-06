@@ -57,8 +57,8 @@ preprocess <- function(data) {
 
 
 # Specify path of files
-in_path <- "../data/raw/"
-out_path <- "../data/processed/"
+in_path <- "data/raw/"
+out_path <- "data/processed/"
 
 # Training & validation set
 train_full <- read_csv(str_c(in_path, "train.csv")) %>% preprocess()
