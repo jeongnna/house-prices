@@ -21,7 +21,7 @@ cv_lasso_fit <- function(x, y, params) {
   x_mat <- model.matrix(y ~ ., data = x)
   cv.glmnet(
     x_mat, y,
-    family = params$dist,
+    type.measure = params$type_measure,
     alpha = 1
   )
 }

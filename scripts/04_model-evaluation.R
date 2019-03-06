@@ -57,16 +57,20 @@ valid_mat <- model.matrix(SalePrice ~ ., data = valid)[, -1]
 
 # LASSO: 0.1723852 rmse in validation set
 set.seed(seed)
-lasso_fit <- cv.glmnet(train_mat, train$SalePrice)
-lasso_pred <- predict2(lasso_fit, newdata = valid_mat,
-                       scale_revert = scale_revert,
-                       missing = !cpt, replace_value = y_mean)
-lasso_rmse <- rmse(valid$SalePrice, lasso_pred) %>% set_names("LASSO")
+# lasso_fitted <- cv.glmnet(train_mat, train$SalePrice)
+# lasso_pred <- predict2(lasso_fitted, newdata = valid_mat,
+#                        scale_revert = scale_revert,
+#                        missing = !cpt, replace_value = y_mean)
+# lasso_rmse <- rmse(valid$SalePrice, lasso_pred) %>% set_names("LASSO")
+lasso_params <- list(type_measure = "mse")
+lasso_fitted <- lasso_fit(x_train, y_train, lasso_params)
+lasso_params$lambda <- 0
+lasso_pred <- model_predict(lasso_fitted, x_val, lasso_params)
 
 # Random Forest: 0.1366698 rmse in validation set
 set.seed(seed)
-rf_fit <- randomForest(SalePrice ~ ., data = train)
-rf_pred <- predict2(rf_fit, newdata = valid[cpt, ],
+rf_fitted <- randomForest(SalePrice ~ ., data = train)
+rf_pred <- predict2(rf_fitted, newdata = valid[cpt, ],
                     scale_revert = scale_revert,
                     missing = !cpt, replace_value = y_mean)
 rf_rmse <- rmse(valid$SalePrice, rf_pred) %>% set_names("RF")
@@ -84,12 +88,12 @@ best_gbm <- NULL
 
 for (depth in depths) {
   for (lr in learning_rates) {
-    gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
+    gbm_fitted <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
                    n.trees = n_tree_max,
                    interaction.depth = depth,
                    shrinkage = lr)
     for (n_tree in n_trees) {
-      gbm_pred <- predict2(gbm_fit, newdata = valid[cpt, ], n_trees = n_tree,
+      gbm_pred <- predict2(gbm_fitted, newdata = valid[cpt, ], n_trees = n_tree,
                            scale_revert = scale_revert,
                            missing = !cpt, replace_value = y_mean)
       gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
@@ -100,7 +104,7 @@ for (depth in depths) {
 
       if (gbm_rmse < best_rmse) {
         best_rmse <- gbm_rmse
-        best_gbm <- gbm_fit
+        best_gbm <- gbm_fitted
       }
     }
   }
@@ -113,11 +117,11 @@ n_tree <- 6093
 # depth <- 6
 # lr <- 0.006575879
 # n_tree <- 2265
-gbm_fit <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
+gbm_fitted <- gbm(SalePrice ~ ., data = train, distribution = "gaussian",
                n.trees = n_tree,
                interaction.depth = depth,
                shrinkage = lr)
-gbm_pred <- predict2(gbm_fit, newdata = valid[cpt, ], n_trees = n_tree,
+gbm_pred <- predict2(gbm_fitted, newdata = valid[cpt, ], n_trees = n_tree,
                      scale_revert = scale_revert,
                      missing = !cpt, replace_value = y_mean)
 gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
