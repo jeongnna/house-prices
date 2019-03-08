@@ -62,6 +62,7 @@ rf_pred <- rf_pred * y_sd + y_mean
 rf_rmse <- rmse(rf_pred, y_val) %>% set_names("RF")
 
 # Gradient Boosting: score 0.1235108 in validation set
+# hyperparameter tuning
 set.seed(seed)
 depths <- c(4, 6, 8) %>% sort()
 learning_rates <- 10^runif(5, min = -3, max = -1) %>% sort()
@@ -83,19 +84,13 @@ for (depth in depths) {
     )
     gbm_fitted <- gbm_fit(x_train, y_train, gbm_params)
     for (n_tree in n_trees) {
-      # gbm_pred <- predict2(gbm_fitted, newdata = valid[cpt, ], n_trees = n_tree,
-      #                      scale_revert = scale_revert,
-      #                      missing = !cpt, replace_value = y_mean)
-      # gbm_rmse <- rmse(valid$SalePrice, gbm_pred) %>% set_names("GBM")
       gbm_params$n_trees <- n_tree
       gbm_pred <- model_predict(gbm_fitted, x_val, gbm_params)
       gbm_pred <- gbm_pred * y_sd + y_mean
       gbm_rmse <- rmse(gbm_pred, y_val)
       rmses <- c(rmses, gbm_rmse)
-
       cat("depth: ", depth, ", lr: ", lr, ", n_tree: ", n_tree,
           " ---> rmse: ", gbm_rmse, "\n", sep = "")
-
       if (gbm_rmse < best_rmse) {
         best_rmse <- gbm_rmse
         best_gbm <- gbm_fitted
@@ -103,7 +98,7 @@ for (depth in depths) {
     }
   }
 }
-
+# apply the best parameter
 set.seed(seed)
 gbm_params <- list(
   dist = "gaussian",

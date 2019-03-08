@@ -9,21 +9,17 @@ fit_shape <- function(target, reference, cols) {
 
 
 na_impute <- function(data, num_cols, cat_cols) {
-  
-  impute_na_num <- function(data) {
+  na_impute_numcols <- function(data) {
     data %>% lapply(function(x) {x[is.na(x)] <- median(x, na.rm = TRUE); x})
   }
-  
-  impute_na_cat <- function(data) {
-    most_frequent <- function(x) {
-      names(sort(table(x), decreasing = TRUE))[1]
+  na_impute_catcols <- function(data) {
+    mode <- function(x) {
+      first(names(sort(table(x), decreasing = TRUE)))
     }
-    data %>% lapply(function(x) {x[is.na(x)] <- most_frequent(x); x})
+    data %>% lapply(function(x) {x[is.na(x)] <- mode(x); x})
   }
-  
-  data[num_cols] <- impute_na_num(data[num_cols])
-  data[cat_cols] <- impute_na_cat(data[cat_cols])
-  
+  data[num_cols] <- na_impute_numcols(data[num_cols])
+  data[cat_cols] <- na_impute_catcols(data[cat_cols])
   data
 }
 
